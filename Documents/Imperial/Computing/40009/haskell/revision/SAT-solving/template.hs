@@ -98,19 +98,19 @@ flatten inp = flattenWithMapping (idMap inp) inp
 
 
 propUnits :: CNFRep -> (CNFRep, [Int])
-propUnits inp = propUnits' inp ([],[])
+propUnits inp = propUnits' inp [] []
   where
-    refList = map negate (concat inp)
-
-    exists :: Int -> Bool
-    exists x = x `elem` refList
-
-    propUnits' :: CNFRep -> (CNFRep, [Int]) -> (CNFRep, [Int])
-    propUnits' [] x = x
-    propUnits' (x:xs) (pFormula, pNum)
-      |length x == 1 = propUnits' xs (pFormula, pNum ++ x)
-      |otherwise = propUnits' xs (pFormula ++ [[y|y <- x, not (exists y)]], pNum ++ [y|y <- x, exists y])
-
+    propUnits' :: CNFRep -> CNFRep -> [Int] -> (CNFRep, [Int])
+    propUnits' [] result units = (result, reverse units)
+    propUnits' ([unit]:xs) result units =
+      let propagated = propagate unit (result ++ xs)
+      in propUnits' propagated [] (unit:units)
+    propUnits' (x:xs) result units =
+      propUnits' xs (result ++ [x]) units
+    
+    propagate :: Int -> CNFRep -> CNFRep
+    propagate unit clauses =
+      [filter (/= negate unit) clause | clause <- clauses, unit `notElem` clause]
 
 -- 4 marks
 dp :: CNFRep -> [[Int]]
